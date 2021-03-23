@@ -16,7 +16,8 @@ class Parameters:
     probability_bias = 1.0
     model_dir = Path("./trained_models/")
     # Dataset Parameters
-    dataset_dir = Path("./data/")
+    # dataset_dir = Path("../../dev/210225_gcp/tests/Handwriting-Prediction-and-Synthesis/data/")
+    dataset_dir = Path("../../dev/210113 fleur/data/")
     min_num_points = 300
     num_workers = 2
     # Training Parameters

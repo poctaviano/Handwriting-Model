@@ -51,21 +51,24 @@ class IAMDataset(Dataset):
                 if not files:
                     continue
                 for f in files:
-                    ascii_path = os.path.join(root, f)
-                    strokes_dir = root.replace("ascii", "lineStrokes")
-                    stroke_paths = []
-                    if os.path.isdir(strokes_dir):
-                        for stroke_file in os.listdir(strokes_dir):
-                            if f[:-4] in stroke_file:
-                                stroke_paths.append(
-                                    os.path.join(strokes_dir, stroke_file)
-                                )
-                        stroke_paths.sort(key=lambda name: int(name[-6:-4]))
-                        data_path_list.append((ascii_path, stroke_paths))
+                    if f[:1] != '.':
+                        ascii_path = os.path.join(root, f)
+                        strokes_dir = root.replace("ascii", "lineStrokes")
+                        stroke_paths = []
+                        if os.path.isdir(strokes_dir):
+                            for stroke_file in os.listdir(strokes_dir):
+                                if f[:-4] in stroke_file:
+                                    stroke_paths.append(
+                                        os.path.join(strokes_dir, stroke_file)
+                                    )
+                            # print(stroke_paths)
+                            stroke_paths.sort(key=lambda name: int(name[-6:-4]))
+                            data_path_list.append((ascii_path, stroke_paths))
             return data_path_list
 
         def getAscii(filename):
-            with open(filename, "r") as f:
+            # print(filename)
+            with open(filename, "r", encoding='utf-8') as f:
                 text = f.read()
             text = text[text.find("CSR:") + 6 :]
             return text.split("\n")
@@ -132,6 +135,7 @@ class IAMDataset(Dataset):
                     print("\nText was too short: {}".format(text))
 
         assert len(text_array) == len(strokes_array)
+        # print(self.data_filename)
         with open(self.data_filename, "wb+") as f:
             pickle.dump([text_array, strokes_array], f)
 

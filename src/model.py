@@ -2,6 +2,8 @@ import torch
 from torch.nn.modules import Module, LSTM
 from .modules import GaussianWindow, MDN
 import numpy as np
+from fast_transformers.recurrent.transformers import RecurrentTransformerEncoderLayer
+from fast_transformers.recurrent.attention import RecurrentAttentionLayer, RecurrentLinearAttention
 
 
 class HandwritingGenerator(Module):
@@ -13,8 +15,23 @@ class HandwritingGenerator(Module):
         self.hidden_size = hidden_size
         self.num_window_components = num_window_components
         self.num_mixture_components = num_mixture_components
+        print(num_window_components)
+        print(num_mixture_components)
+        print(hidden_size)
+        input_size = 3
+        n_heads_1 = 2
+        n_heads_2 = 12
         # First LSTM layer, takes as input a tuple (x, y, eol)
-        self.lstm1_layer = LSTM(input_size=3, hidden_size=hidden_size, batch_first=True)
+        # self.lstm1_layer = LSTM(input_size=3, hidden_size=hidden_size, batch_first=True)
+
+        self.lstm1_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), input_size, n_heads_1),
+            input_size,
+            hidden_size,
+            activation="gelu"
+        )
+        self.lstm1_layer2 = torch.nn.Linear(input_size, hidden_size)
+
         # Gaussian Window layer
         self.window_layer = GaussianWindow(
             input_size=hidden_size, num_components=num_window_components
@@ -22,18 +39,31 @@ class HandwritingGenerator(Module):
         # Second LSTM layer, takes as input the concatenation of the input,
         # the output of the first LSTM layer
         # and the output of the Window layer
-        self.lstm2_layer = LSTM(
-            input_size=3 + hidden_size + alphabet_size + 1,
-            hidden_size=hidden_size,
-            batch_first=True,
+        # self.lstm2_layer = LSTM(
+        #     input_size=3 + hidden_size + alphabet_size + 1,
+        #     hidden_size=hidden_size,
+        #     batch_first=True,
+        # )
+        self.lstm2_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), 3 + hidden_size + alphabet_size + 1, n_heads_2),
+            3 + hidden_size + alphabet_size + 1,
+            hidden_size,
+            activation="gelu"
         )
 
         # Third LSTM layer, takes as input the concatenation of the output of the first LSTM layer,
         # the output of the second LSTM layer
         # and the output of the Window layer
-        self.lstm3_layer = LSTM(
-            input_size=hidden_size, hidden_size=hidden_size, batch_first=True
+        # self.lstm3_layer = LSTM(
+        #     input_size=hidden_size, hidden_size=hidden_size, batch_first=True
+        # )
+        self.lstm3_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), hidden_size, n_heads_2),
+            hidden_size,
+            hidden_size,
+            activation="gelu"
         )
+
 
         # Mixture Density Network Layer
         self.output_layer = MDN(
@@ -52,8 +82,24 @@ class HandwritingGenerator(Module):
     def forward(self, strokes, onehot, bias=None):
         # First LSTM Layer
         input_ = strokes
-        self.lstm1_layer.flatten_parameters()
-        output1, self.hidden1 = self.lstm1_layer(input_, self.hidden1)
+        # self.lstm1_layer.flatten_parameters()
+        # print(input_.shape)
+        output1, self.hidden1 = self.lstm1_layer(input_.reshape(-1,3), self.hidden1)
+        print(output1.shape)
+        output1 = self.lstm1_layer2(output1)
+        print(output1.shape)
+        print(onehot.shape)
+        print(self.prev_kappa)
+        # print(output1.shape, self.hidden1.shape)
+        # output1, self.hidden1 = self.lstm1_layer(input_, self.hidden1)
+        # output1 = []
+        # self.hidden1 = []
+        # for i in input_:
+        #     o = self.lstm1_layer(i, self.hidden1)
+        #     print(o)
+        #     output1.append(o)
+        #     self.hidden1.append(h1)
+        # print(output1.shape)
         # Gaussian Window Layer
         window, self.prev_kappa, phi = self.window_layer(
             output1, onehot, self.prev_kappa
