@@ -35,18 +35,9 @@ And the directory structure has to be the following:
     
 ```
 
-## Usage
-
-Create virtual environment and install packages:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+## Requierements
 ```
-
-See the main script's help text for more information:
-
-```bash
-python main.py --help
+Python  3.6
+PyTorch 0.3.1
+numpy   1.14.1
 ```
