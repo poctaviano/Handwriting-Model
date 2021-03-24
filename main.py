@@ -38,6 +38,7 @@ class Parameters:
 @click.command()
 @click.option("--train/--no-train", is_flag=True, default=True)
 @click.option("--gpu/--no-gpu", is_flag=True, default=True)
+@click.option("--idx", default=None)
 def main(train: bool, gpu: bool):
     print("Starting time: {}".format(time.asctime()))
 
@@ -46,6 +47,8 @@ def main(train: bool, gpu: bool):
 
     Parameters.train_model = train
     Parameters.use_gpu = gpu
+    if idx is not None:
+        Parameters.idx = idx
 
     if Parameters.train_model is True:
         # Instantiating the trainer
