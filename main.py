@@ -10,7 +10,8 @@ from src import Trainer, Tester, plotlosses
 class Parameters:
     # Model Parameters
     input_size = 3
-    hidden_size = 200
+    # hidden_size = 200
+    hidden_size = 32
     num_window_components = 10
     num_mixture_components = 20
     probability_bias = 1.0
@@ -21,8 +22,10 @@ class Parameters:
     min_num_points = 300
     num_workers = 2
     # Training Parameters
-    num_epochs = 1000
-    batch_size = 256
+    # num_epochs = 1000
+    num_epochs = 10
+    # batch_size = 256
+    batch_size = 16
     max_norm = 400
     # Optimizer Parameters
     optimizer = "Adam"

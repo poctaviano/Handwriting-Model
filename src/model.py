@@ -15,12 +15,12 @@ class HandwritingGenerator(Module):
         self.hidden_size = hidden_size
         self.num_window_components = num_window_components
         self.num_mixture_components = num_mixture_components
-        print(num_window_components)
-        print(num_mixture_components)
-        print(hidden_size)
-        input_size = 3
+        # print(num_window_components)
+        # print(num_mixture_components)
+        # print(hidden_size)
+        self.input_size = input_size = 3
         n_heads_1 = 2
-        n_heads_2 = 12
+        n_heads_2 = 4
         # First LSTM layer, takes as input a tuple (x, y, eol)
         # self.lstm1_layer = LSTM(input_size=3, hidden_size=hidden_size, batch_first=True)
 
@@ -57,9 +57,11 @@ class HandwritingGenerator(Module):
         # self.lstm3_layer = LSTM(
         #     input_size=hidden_size, hidden_size=hidden_size, batch_first=True
         # )
+        # print( 3 + hidden_size + alphabet_size + 1)
+        # print(hidden_size)
         self.lstm3_layer = RecurrentTransformerEncoderLayer(
-            RecurrentAttentionLayer(RecurrentLinearAttention(1), hidden_size, n_heads_2),
-            hidden_size,
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), 3 + hidden_size + alphabet_size + 1, n_heads_2),
+            3 + hidden_size + alphabet_size + 1,
             hidden_size,
             activation="gelu"
         )
@@ -67,7 +69,7 @@ class HandwritingGenerator(Module):
 
         # Mixture Density Network Layer
         self.output_layer = MDN(
-            input_size=hidden_size, num_mixtures=num_mixture_components
+            input_size=3 + hidden_size + alphabet_size + 1, num_mixtures=num_mixture_components
         )
 
         # Hidden State Variables
@@ -84,12 +86,13 @@ class HandwritingGenerator(Module):
         input_ = strokes
         # self.lstm1_layer.flatten_parameters()
         # print(input_.shape)
-        output1, self.hidden1 = self.lstm1_layer(input_.reshape(-1,3), self.hidden1)
-        print(output1.shape)
+        output1, self.hidden1 = self.lstm1_layer(input_.reshape(-1,self.input_size), self.hidden1)
+        # print(output1.shape)
         output1 = self.lstm1_layer2(output1)
-        print(output1.shape)
-        print(onehot.shape)
-        print(self.prev_kappa)
+        output1 = output1.reshape(-1,1,self.hidden_size)
+        # print(output1.shape)
+        # print(onehot.shape)
+        # print(self.prev_kappa)
         # print(output1.shape, self.hidden1.shape)
         # output1, self.hidden1 = self.lstm1_layer(input_, self.hidden1)
         # output1 = []
@@ -104,14 +107,22 @@ class HandwritingGenerator(Module):
         window, self.prev_kappa, phi = self.window_layer(
             output1, onehot, self.prev_kappa
         )
+        # print(output1.shape)
+        # print(strokes.shape)
+        # print(window.shape)
+        # print(self.hidden2)
         # Second LSTM Layer
+        torch.squeeze(output1)
         output2, self.hidden2 = self.lstm2_layer(
-            torch.cat((strokes, output1, window), dim=2), self.hidden2
+            torch.squeeze(torch.cat((strokes, output1, window), dim=2)), self.hidden2
         )
+        # print(output2.shape)
+        # print([h.shape for h in self.hidden2])
+        # print(self.hidden3.shape)
         # Third LSTM Layer
         output3, self.hidden3 = self.lstm3_layer(output2, self.hidden3)
         # MDN Layer
-        eos, pi, mu1, mu2, sigma1, sigma2, rho = self.output_layer(output3, bias)
+        eos, pi, mu1, mu2, sigma1, sigma2, rho = self.output_layer(output3.reshape(-1,1,output3.shape[-1]), bias)
         return (eos, pi, mu1, mu2, sigma1, sigma2, rho), (window, phi)
 
     @staticmethod

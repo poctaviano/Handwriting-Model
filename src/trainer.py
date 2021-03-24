@@ -3,7 +3,7 @@ import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 from .dataset import IAMDataset
 from .model import HandwritingGenerator
 from .loss import HandwritingLoss
@@ -124,7 +124,7 @@ class Trainer:
             # Backward step
             loss.backward()
             # Clip gradients
-            clip_grad_norm(self.model.parameters(), self.params.max_norm)
+            clip_grad_norm_(self.model.parameters(), self.params.max_norm)
             # Weight Update
             self.optimizer.step()
             if self.use_gpu is True:
