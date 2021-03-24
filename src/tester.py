@@ -27,7 +27,7 @@ class Tester(object):
         )
 
         # Initialize model
-        path = self.params.model_dir / "trained_model.pt"
+        path = self.params.model_dir / f"trained_model{self.params.idx}.pt"
         self.model = self.load_model(path)
 
         # Criterion

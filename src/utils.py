@@ -24,6 +24,7 @@ def plotstrokes(strokes, other_strokes=None):
     y = torch.cumsum(strokes[:, :, 1], dim=1).numpy()
     eos = strokes[:, :, 2]
     eos_indices = (eos.nonzero()[:, 1]).numpy()
+    # eos_indices = (eos.nonzero()[:, 1]).numpy()
     idx = 0
     while idx != eos_indices.shape[0]:
         start_index = eos_indices[idx] + 1

@@ -59,7 +59,7 @@ class Trainer:
         best_model = self.model.state_dict()
         avg_losses = np.zeros(self.params.num_epochs)
         self.params.model_dir.mkdir(parents=True, exist_ok=True)
-        path = self.params.model_dir / "trained_model.pt"
+        path = self.params.model_dir / f"trained_model_{self.params.idx}.pt"
         for epoch in range(self.params.num_epochs):
             try:
                 print("Epoch {}".format(epoch + 1))
@@ -83,6 +83,7 @@ class Trainer:
                 print("Training was interrupted")
                 break
         # Saving trained model
+        print("Saving model...")
         self.save_model(best_model, path)
         return avg_losses
 

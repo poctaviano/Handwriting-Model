@@ -65,7 +65,7 @@ class HandwritingGenerator(Module):
             hidden_size,
             activation="gelu"
         )
-
+        self.lstm3_layer2 = torch.nn.LayerNorm(3 + hidden_size + alphabet_size + 1)
 
         # Mixture Density Network Layer
         self.output_layer = MDN(
@@ -112,15 +112,17 @@ class HandwritingGenerator(Module):
         # print(window.shape)
         # print(self.hidden2)
         # Second LSTM Layer
-        torch.squeeze(output1)
+        # torch.squeeze(output1)
+        # print(torch.cat((strokes, output1, window), dim=2).shape)
         output2, self.hidden2 = self.lstm2_layer(
-            torch.squeeze(torch.cat((strokes, output1, window), dim=2)), self.hidden2
+            torch.cat((strokes, output1, window), dim=2).reshape(-1,strokes.shape[-1] + output1.shape[-1] + window.shape[-1]), self.hidden2
         )
         # print(output2.shape)
         # print([h.shape for h in self.hidden2])
         # print(self.hidden3.shape)
         # Third LSTM Layer
         output3, self.hidden3 = self.lstm3_layer(output2, self.hidden3)
+        output3 = self.lstm3_layer2(output3)
         # MDN Layer
         eos, pi, mu1, mu2, sigma1, sigma2, rho = self.output_layer(output3.reshape(-1,1,output3.shape[-1]), bias)
         return (eos, pi, mu1, mu2, sigma1, sigma2, rho), (window, phi)
@@ -153,10 +155,10 @@ class HandwritingGenerator(Module):
     def reset_parameters(self):
         for parameter in self.parameters():
             if len(parameter.size()) == 2:
-                torch.nn.init.xavier_uniform(parameter, gain=1.0)
+                torch.nn.init.xavier_uniform_(parameter, gain=1.0)
             else:
                 stdv = 1.0 / parameter.size(0)
-                torch.nn.init.uniform(parameter, -stdv, stdv)
+                torch.nn.init.uniform_(parameter, -stdv, stdv)
 
     def num_parameters(self):
         num = 0
