@@ -39,7 +39,7 @@ class Parameters:
 @click.option("--train/--no-train", is_flag=True, default=True)
 @click.option("--gpu/--no-gpu", is_flag=True, default=True)
 @click.option("--idx", default=None)
-def main(train: bool, gpu: bool):
+def main(train: bool, gpu: bool, idx: str):
     print("Starting time: {}".format(time.asctime()))
 
     # To have a more verbose output in case of an exception
