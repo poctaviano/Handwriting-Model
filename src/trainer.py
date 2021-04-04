@@ -62,7 +62,7 @@ class Trainer:
 
         self.model.to(self.device)
 
-        print(self.model)
+        # print(self.model)
 
         print("Number of parameters = {}".format(self.model.num_parameters()))
 
