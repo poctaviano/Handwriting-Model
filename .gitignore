@@ -149,4 +149,5 @@ data
 # Models
 trained_models
 trained_models_gcp
+trained_models_arch
 Untitled.ipynb
