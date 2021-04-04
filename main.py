@@ -16,7 +16,7 @@ class Parameters:
     num_mixture_components = 20
     probability_bias = 1.0
     model_dir = Path("./trained_models/")
-    idx = "2"
+    idx = "n"
     # Dataset Parameters
     # dataset_dir = Path("../../Handwriting-Prediction-and-Synthesis/data/")
     dataset_dir = Path("../../data/")
@@ -24,7 +24,7 @@ class Parameters:
     num_workers = 2
     # Training Parameters
     # num_epochs = 1000
-    num_epochs = 100
+    num_epochs = 1000
     # batch_size = 256
     batch_size = 128
     max_norm = 400
