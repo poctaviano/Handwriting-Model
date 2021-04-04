@@ -9,6 +9,8 @@ from .model import HandwritingGenerator
 from .loss import HandwritingLoss
 from copy import deepcopy
 from .utils import plotstrokes
+from typing import Union
+from pathlib import Path
 
 
 class Trainer:
@@ -36,12 +38,28 @@ class Trainer:
         self.device = torch.device("cuda:0" if self.use_gpu else "cpu")
 
         # Initialize model
-        self.model = HandwritingGenerator(
-            alphabet_size=alphabet_size,
-            hidden_size=self.params.hidden_size,
-            num_window_components=self.params.num_window_components,
-            num_mixture_components=self.params.num_mixture_components,
-        )
+        # self.model = HandwritingGenerator(
+        #     alphabet_size=alphabet_size,
+        #     hidden_size=self.params.hidden_size,
+        #     num_window_components=self.params.num_window_components,
+        #     num_mixture_components=self.params.num_mixture_components,
+        # )
+
+        try:
+            path = self.params.model_dir / f"trained_model_{self.params.idx}.pt"
+            print(f"Loading model : {path}")
+            self.model = self.load_model(path)
+            print(f"'{path}' model loaded!")
+        except Exception as e:
+            print(f"{path} model not found.")
+            print("Creating new model.")
+            self.model = HandwritingGenerator(
+                alphabet_size=alphabet_size,
+                hidden_size=self.params.hidden_size,
+                num_window_components=self.params.num_window_components,
+                num_mixture_components=self.params.num_mixture_components,
+            )
+
         self.model.to(self.device)
 
         print(self.model)
@@ -134,6 +152,13 @@ class Trainer:
         # Compute the average loss for this epoch
         avg_loss = losses / len(self.trainloader)
         return avg_loss
+
+    @staticmethod
+    def load_model(path: Union[Path, str]):
+        package = torch.load(path, map_location=lambda storage, loc: storage)
+        parameters = package["parameters"]
+        state_dict = package["state_dict"]
+        return HandwritingGenerator.load_model(parameters, state_dict)
 
     def save_model(self, model_parameters, path):
         model = deepcopy(self.model)
