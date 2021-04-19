@@ -101,7 +101,7 @@ class HandwritingGenerator(Module):
             input_, self.hidden1[i] = l(input_, self.hidden1[i])
         # print(output1.shape)
         output1 = self.norm1_layer(input_)
-        output1 = output1.reshape(-1,1,self.hidden_size)
+        output1 = output1.reshape(-1,1,self.hidden_size//2)
         # print(output1.shape)
         # print(onehot.shape)
         # print(self.prev_kappa)
