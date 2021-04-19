@@ -45,7 +45,7 @@ class HandwritingGenerator(Module):
                 activation="gelu"
             ) for l in range(self.n_pre_layers)
         ]
-        self.norm1_layer = torch.nn.Linear(input_size, hidden_size//2)
+        self.norm1_layer = torch.nn.Linear(input_size, hidden_size)
 
         # Gaussian Window layer
         self.window_layer = GaussianWindow(
