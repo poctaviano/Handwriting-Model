@@ -41,7 +41,7 @@ class HandwritingGenerator(Module):
             RecurrentTransformerEncoderLayer(
                 RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), input_size, n_heads_1),
                 input_size,
-                hidden_size//2,
+                hidden_size,
                 activation="gelu"
             ) for l in range(self.n_pre_layers)
         ]
@@ -49,7 +49,7 @@ class HandwritingGenerator(Module):
 
         # Gaussian Window layer
         self.window_layer = GaussianWindow(
-            input_size=hidden_size//2, num_components=num_window_components
+            input_size=hidden_size, num_components=num_window_components
         )
         # Second LSTM layer, takes as input the concatenation of the input,
         # the output of the first LSTM layer
@@ -101,7 +101,7 @@ class HandwritingGenerator(Module):
             input_, self.hidden1[i] = l(input_, self.hidden1[i])
         # print(output1.shape)
         output1 = self.norm1_layer(input_)
-        output1 = output1.reshape(-1,1,self.hidden_size//2)
+        output1 = output1.reshape(-1,1,self.hidden_size)
         # print(output1.shape)
         # print(onehot.shape)
         # print(self.prev_kappa)
