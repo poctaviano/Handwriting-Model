@@ -23,7 +23,7 @@ class IAMDataset(Dataset):
         # space + uppercase and lowercase letters, their indices will be shifted when transforming them
         # to one hot in order to have index 0 for unknown characters
         self.alphabet = "".join(
-            [" "] + [c for c in string.printable + '¡¢£¦«°±²³µ»¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿŒœ']
+            [" "] + [c for c in string.ascii_lowercase + string.ascii_uppercase]
         )
         self.length = 0
         self.limit = 300

@@ -20,36 +20,21 @@ class HandwritingGenerator(Module):
         # print(hidden_size)
         self.input_size = input_size = 3
         n_heads_1 = 2
-        n_heads_2 = 6
-        query_dimensions = 1
-        self.n_pre_layers = 2
-        self.n_layers = 6
-        # n_heads_2 = 4
+        n_heads_2 = 4
         # First LSTM layer, takes as input a tuple (x, y, eol)
         # self.lstm1_layer = LSTM(input_size=3, hidden_size=hidden_size, batch_first=True)
-    # [
-    #     TransformerEncoderLayer(
-    #         AttentionLayer(FullAttention(), 768, 12),
-    #         768,
-    #         12,
-    #         activation="gelu"
-    #     ) for l in range(12)
-    # ],
-    # norm_layer=torch.nn.LayerNorm(768)
 
-        self.transformers1_layers = [
-            RecurrentTransformerEncoderLayer(
-                RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), input_size, n_heads_1),
-                input_size,
-                hidden_size//2,
-                activation="gelu"
-            ) for l in range(self.n_pre_layers)
-        ]
-        self.norm1_layer = torch.nn.Linear(input_size, hidden_size//2)
+        self.lstm1_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), input_size, n_heads_1),
+            input_size,
+            hidden_size,
+            activation="gelu"
+        )
+        self.lstm1_layer2 = torch.nn.Linear(input_size, hidden_size)
 
         # Gaussian Window layer
         self.window_layer = GaussianWindow(
-            input_size=hidden_size//2, num_components=num_window_components
+            input_size=hidden_size, num_components=num_window_components
         )
         # Second LSTM layer, takes as input the concatenation of the input,
         # the output of the first LSTM layer
@@ -59,14 +44,12 @@ class HandwritingGenerator(Module):
         #     hidden_size=hidden_size,
         #     batch_first=True,
         # )
-        self.transformers2_layers = [
-            RecurrentTransformerEncoderLayer(
-                RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), 3 + hidden_size + alphabet_size + 1, n_heads_2),
-                3 + hidden_size + alphabet_size + 1,
-                hidden_size,
-                activation="gelu"
-            ) for l in range(self.n_layers)
-        ]
+        self.lstm2_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), 3 + hidden_size + alphabet_size + 1, n_heads_2),
+            3 + hidden_size + alphabet_size + 1,
+            hidden_size,
+            activation="gelu"
+        )
 
         # Third LSTM layer, takes as input the concatenation of the output of the first LSTM layer,
         # the output of the second LSTM layer
@@ -76,7 +59,13 @@ class HandwritingGenerator(Module):
         # )
         # print( 3 + hidden_size + alphabet_size + 1)
         # print(hidden_size)
-        self.norm2_layer = torch.nn.LayerNorm(3 + hidden_size + alphabet_size + 1)
+        self.lstm3_layer = RecurrentTransformerEncoderLayer(
+            RecurrentAttentionLayer(RecurrentLinearAttention(1), 3 + hidden_size + alphabet_size + 1, n_heads_2),
+            3 + hidden_size + alphabet_size + 1,
+            hidden_size,
+            activation="gelu"
+        )
+        self.lstm3_layer2 = torch.nn.LayerNorm(3 + hidden_size + alphabet_size + 1)
 
         # Mixture Density Network Layer
         self.output_layer = MDN(
@@ -85,22 +74,21 @@ class HandwritingGenerator(Module):
 
         # Hidden State Variables
         self.prev_kappa = None
-        self.hidden1 = [None] * self.n_pre_layers
-        self.hidden2 = [None] * self.n_layers
-        # self.hidden3 = None
+        self.hidden1 = None
+        self.hidden2 = None
+        self.hidden3 = None
 
         # Initiliaze parameters
         self.reset_parameters()
 
     def forward(self, strokes, onehot, bias=None):
         # First LSTM Layer
-        input_ = strokes.reshape(-1,self.input_size)
+        input_ = strokes
         # self.lstm1_layer.flatten_parameters()
         # print(input_.shape)
-        for i, l in enumerate(self.transformers1_layers):
-            input_, self.hidden1[i] = l(input_, self.hidden1[i])
+        output1, self.hidden1 = self.lstm1_layer(input_.reshape(-1,self.input_size), self.hidden1)
         # print(output1.shape)
-        output1 = self.norm1_layer(input_)
+        output1 = self.lstm1_layer2(output1)
         output1 = output1.reshape(-1,1,self.hidden_size)
         # print(output1.shape)
         # print(onehot.shape)
@@ -126,15 +114,15 @@ class HandwritingGenerator(Module):
         # Second LSTM Layer
         # torch.squeeze(output1)
         # print(torch.cat((strokes, output1, window), dim=2).shape)
-        output2 = torch.cat((strokes, output1, window),
-            dim=2).reshape(-1, strokes.shape[-1] + output1.shape[-1] + window.shape[-1])
-        for i, l in enumerate(self.transformers2_layers):
-            output2, self.hidden2[i] = l(output2, self.hidden2[i])
+        output2, self.hidden2 = self.lstm2_layer(
+            torch.cat((strokes, output1, window), dim=2).reshape(-1,strokes.shape[-1] + output1.shape[-1] + window.shape[-1]), self.hidden2
+        )
         # print(output2.shape)
         # print([h.shape for h in self.hidden2])
         # print(self.hidden3.shape)
         # Third LSTM Layer
-        output3 = self.norm2_layer(output2)
+        output3, self.hidden3 = self.lstm3_layer(output2, self.hidden3)
+        output3 = self.lstm3_layer2(output3)
         # MDN Layer
         eos, pi, mu1, mu2, sigma1, sigma2, rho = self.output_layer(output3.reshape(-1,1,output3.shape[-1]), bias)
         return (eos, pi, mu1, mu2, sigma1, sigma2, rho), (window, phi)
@@ -160,9 +148,9 @@ class HandwritingGenerator(Module):
 
     def reset_state(self):
         self.prev_kappa = None
-        self.hidden1 = [None] * self.n_pre_layers
-        self.hidden2 = [None] * self.n_layers
-        # self.hidden3 = None
+        self.hidden1 = None
+        self.hidden2 = None
+        self.hidden3 = None
 
     def reset_parameters(self):
         for parameter in self.parameters():
