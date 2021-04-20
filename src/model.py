@@ -20,7 +20,7 @@ class HandwritingGenerator(Module):
         # print(hidden_size)
         self.input_size = input_size = 3
         n_heads_1 = 2
-        n_heads_2 = 4
+        n_heads_2 = 10
         query_dimensions = 1
         self.n_pre_layers = 2
         self.n_layers = 4
@@ -37,15 +37,17 @@ class HandwritingGenerator(Module):
     # ],
     # norm_layer=torch.nn.LayerNorm(768)
 
-        self.transformers1_layers = [
-            RecurrentTransformerEncoderLayer(
-                RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), input_size, n_heads_1),
-                input_size,
-                hidden_size,
-                activation="gelu"
-            ) for l in range(self.n_pre_layers)
-        ]
-        self.norm1_layer = torch.nn.Linear(input_size, hidden_size)
+        self.lstm1_layer = LSTM(input_size=input_size, hidden_size=hidden_size, batch_first=True)
+
+        # self.transformers1_layers = [
+        #     RecurrentTransformerEncoderLayer(
+        #         RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), input_size, n_heads_1),
+        #         input_size,
+        #         hidden_size,
+        #         activation="gelu"
+        #     ) for l in range(self.n_pre_layers)
+        # ]
+        # self.norm1_layer = torch.nn.Linear(input_size, hidden_size)
 
         # Gaussian Window layer
         self.window_layer = GaussianWindow(
@@ -63,6 +65,8 @@ class HandwritingGenerator(Module):
             RecurrentTransformerEncoderLayer(
                 RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), 3 + hidden_size + alphabet_size + 1, n_heads_2),
                 3 + hidden_size + alphabet_size + 1,
+                # RecurrentAttentionLayer(RecurrentLinearAttention(query_dimensions), hidden_size, n_heads_2),
+                # hidden_size,
                 hidden_size,
                 activation="gelu"
             ) for l in range(self.n_layers)
@@ -77,10 +81,13 @@ class HandwritingGenerator(Module):
         # print( 3 + hidden_size + alphabet_size + 1)
         # print(hidden_size)
         self.norm2_layer = torch.nn.LayerNorm(3 + hidden_size + alphabet_size + 1)
+        # self.norm2_layer = torch.nn.LayerNorm(hidden_size)
+        # self.norm2_layer = torch.nn.Linear(hidden_size)
 
         # Mixture Density Network Layer
         self.output_layer = MDN(
             input_size=3 + hidden_size + alphabet_size + 1, num_mixtures=num_mixture_components
+            # input_size=hidden_size, num_mixtures=num_mixture_components
         )
 
         # Hidden State Variables
@@ -94,14 +101,19 @@ class HandwritingGenerator(Module):
 
     def forward(self, strokes, onehot, bias=None):
         # First LSTM Layer
-        input_ = strokes.reshape(-1,self.input_size)
+        # input_ = strokes.reshape(-1,self.input_size)
+        input_ = strokes
         # self.lstm1_layer.flatten_parameters()
         # print(input_.shape)
-        for i, l in enumerate(self.transformers1_layers):
-            input_, self.hidden1[i] = l(input_, self.hidden1[i])
-        # print(output1.shape)
-        output1 = self.norm1_layer(input_)
-        output1 = output1.reshape(-1,1,self.hidden_size)
+
+        # for i, l in enumerate(self.transformers1_layers):
+        #     input_, self.hidden1[i] = l(input_, self.hidden1[i])
+        # # print(output1.shape)
+        # output1 = self.norm1_layer(input_)
+        # output1 = output1.reshape(-1,1,self.hidden_size)
+
+        output1 = self.lstm1_layer(input_)
+
         # print(output1.shape)
         # print(onehot.shape)
         # print(self.prev_kappa)
@@ -127,7 +139,8 @@ class HandwritingGenerator(Module):
         # torch.squeeze(output1)
         # print(torch.cat((strokes, output1, window), dim=2).shape)
         output2 = torch.cat((strokes, output1, window),
-            dim=2).reshape(-1, strokes.shape[-1] + output1.shape[-1] + window.shape[-1])
+            dim=2).squeeze()
+            # dim=2).reshape(-1, strokes.shape[-1] + output1.shape[-1] + window.shape[-1])
         for i, l in enumerate(self.transformers2_layers):
             output2, self.hidden2[i] = l(output2, self.hidden2[i])
         # print(output2.shape)
