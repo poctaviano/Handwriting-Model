@@ -20,10 +20,10 @@ class HandwritingGenerator(Module):
         # print(hidden_size)
         self.input_size = input_size = 3
         n_heads_1 = 2
-        n_heads_2 = 6
+        n_heads_2 = 4
         query_dimensions = 1
         self.n_pre_layers = 2
-        self.n_layers = 6
+        self.n_layers = 4
         # n_heads_2 = 4
         # First LSTM layer, takes as input a tuple (x, y, eol)
         # self.lstm1_layer = LSTM(input_size=3, hidden_size=hidden_size, batch_first=True)

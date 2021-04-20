@@ -11,7 +11,7 @@ class Parameters:
     # Model Parameters
     input_size = 3
     # hidden_size = 200
-    hidden_size = 64
+    hidden_size = 64//2
     num_window_components = 10
     num_mixture_components = 20
     probability_bias = 1.0
