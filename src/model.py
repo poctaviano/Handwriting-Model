@@ -92,7 +92,9 @@ class HandwritingGenerator(Module):
 
         # Hidden State Variables
         self.prev_kappa = None
-        self.hidden1 = [None] * self.n_pre_layers
+        # self.hidden1 = None
+        self.hidden1 = None
+        # self.hidden1 = [None] * self.n_pre_layers
         self.hidden2 = [None] * self.n_layers
         # self.hidden3 = None
 
@@ -105,6 +107,7 @@ class HandwritingGenerator(Module):
         input_ = strokes
         # self.lstm1_layer.flatten_parameters()
         # print(input_.shape)
+        # print(self.hidden1)
 
         # for i, l in enumerate(self.transformers1_layers):
         #     input_, self.hidden1[i] = l(input_, self.hidden1[i])
@@ -112,7 +115,8 @@ class HandwritingGenerator(Module):
         # output1 = self.norm1_layer(input_)
         # output1 = output1.reshape(-1,1,self.hidden_size)
 
-        output1 = self.lstm1_layer(input_)
+        self.lstm1_layer.flatten_parameters()
+        output1, self.hidden1 = self.lstm1_layer(input_, self.hidden1)
 
         # print(output1.shape)
         # print(onehot.shape)
@@ -139,8 +143,8 @@ class HandwritingGenerator(Module):
         # torch.squeeze(output1)
         # print(torch.cat((strokes, output1, window), dim=2).shape)
         output2 = torch.cat((strokes, output1, window),
-            dim=2).squeeze()
-            # dim=2).reshape(-1, strokes.shape[-1] + output1.shape[-1] + window.shape[-1])
+            # dim=2).squeeze()
+            dim=2).reshape(-1, strokes.shape[-1] + output1.shape[-1] + window.shape[-1])
         for i, l in enumerate(self.transformers2_layers):
             output2, self.hidden2[i] = l(output2, self.hidden2[i])
         # print(output2.shape)
@@ -173,7 +177,8 @@ class HandwritingGenerator(Module):
 
     def reset_state(self):
         self.prev_kappa = None
-        self.hidden1 = [None] * self.n_pre_layers
+        self.hidden1 = None
+        # self.hidden1 = [None] * self.n_pre_layers
         self.hidden2 = [None] * self.n_layers
         # self.hidden3 = None
 

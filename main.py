@@ -26,7 +26,7 @@ class Parameters:
     # num_epochs = 1000
     num_epochs = 1000
     # batch_size = 256
-    batch_size = 128
+    batch_size = 128//4
     max_norm = 400
     # Optimizer Parameters
     optimizer = "Adam"
